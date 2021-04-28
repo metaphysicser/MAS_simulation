@@ -24,126 +24,37 @@ import os, time, random
 
 
 
-def simulation_pic12(k = 40,n = 20,r = 2,delta = 1):
+def simulation_pic12(k = 40,n = 20,r = 2,delta = 0,save = True):
 
     X = np.arange(0, k + 1)
     Y = []
-    m = MAS_switch_topology(delta=0, number=n, r=r)
-
-    figure, ax = plt.subplots(2, 2)
-
-    Y.append(m.states.tolist())
-    for i in trange(0, k):
-        m.states_update()
-        Y.append(m.states.tolist())
-    Y = np.array(Y).T
-    ax[0][0].set_title('r = 2')
-    for i in range(0, n):
-        ax[0][0].plot(X, Y[i])
+    m = MAS_switch_topology(delta=delta, number=n, r=r)
+    m.initial_states =np.array([41.8309021  ,57.64950439 ,55.37732576 ,59.20001792, 57.7233624,  40.33882689,
+ 57.84884924, 48.73382393, 42.93908053 ,53.11672422, 56.06069219, 40.12895605,
+ 44.62407166, 47.55277699, 50.61738483, 40.01444508, 56.25899311, 49.84214835,
+ 50.72414305 ,41.86621181])
     m.reset()
-    Y = []
-
-    m.r = 3
-
-    Y.append(m.states.tolist())
-    for i in trange(0, k):
-        m.states_update()
-        Y.append(m.states.tolist())
-    Y = np.array(Y).T
-    ax[0][1].set_title('r = 3')
-    for i in range(0, n):
-        ax[0][1].plot(X, Y[i])
-    m.reset()
-    Y = []
-
     m.r = 4
+    convergence = 0
 
     Y.append(m.states.tolist())
     for i in trange(0, k):
         m.states_update()
         Y.append(m.states.tolist())
+        if m.convergence():
+            convergence = i
     Y = np.array(Y).T
-    ax[1][0].set_title('r = 4')
+   # plt.title('r = 2')
     for i in range(0, n):
-        ax[1][0].plot(X, Y[i])
-    m.reset()
-    Y = []
+        plt.plot(X, Y[i])
 
-    m.r = 5
-
-    Y.append(m.states.tolist())
-    for i in trange(0, k):
-        m.states_update()
-        Y.append(m.states.tolist())
-    Y = np.array(Y).T
-    ax[1][1].set_title('r = 5')
-    for i in range(0, n):
-        ax[1][1].plot(X, Y[i])
-    m.reset()
-    Y = []
-
-    plt.savefig('figure2/simulation1')
-    plt.show()
+    plt.vlines(convergence, 40, 60)
 
 
-    X = np.arange(0, k + 1)
-    Y = []
-    m.update_delta(delta=delta)
-    m.r = 2
 
-    figure, ax = plt.subplots(2, 2)
+    if save:
+        plt.savefig('figure2/simulation2b')
 
-    Y.append(m.states.tolist())
-    for i in trange(0, k):
-        m.states_update()
-        Y.append(m.states.tolist())
-    Y = np.array(Y).T
-    ax[0][0].set_title('r = 2')
-    for i in range(0, n):
-        ax[0][0].plot(X, Y[i])
-    m.reset()
-    Y = []
-
-    m.r = 3
-
-    Y.append(m.states.tolist())
-    for i in trange(0, k):
-        m.states_update()
-        Y.append(m.states.tolist())
-    Y = np.array(Y).T
-    ax[0][1].set_title('r = 3')
-    for i in range(0, n):
-        ax[0][1].plot(X, Y[i])
-    m.reset()
-    Y = []
-
-    m.r = 4
-
-    Y.append(m.states.tolist())
-    for i in trange(0, k):
-        m.states_update()
-        Y.append(m.states.tolist())
-    Y = np.array(Y).T
-    ax[1][0].set_title('r = 4')
-    for i in range(0, n):
-        ax[1][0].plot(X, Y[i])
-    m.reset()
-    Y = []
-
-    m.r = 5
-
-    Y.append(m.states.tolist())
-    for i in trange(0, k):
-        m.states_update()
-        Y.append(m.states.tolist())
-    Y = np.array(Y).T
-    ax[1][1].set_title('r = 5')
-    for i in range(0, n):
-        ax[1][1].plot(X, Y[i])
-    m.reset()
-    Y = []
-
-    plt.savefig('figure2/simulation2')
     plt.show()
 
 def simulation_pic3b(precision=30, ave_n=200):
@@ -170,7 +81,7 @@ def simulation_pic3b(precision=30, ave_n=200):
     plt.show()
 
 
-def simulation_pic4a(k = 10000,repeat = 25):
+def simulation_pic4a(k = 10000,repeat = 25,save = True):
 
 
     convergence = 0
@@ -207,7 +118,10 @@ def simulation_pic4a(k = 10000,repeat = 25):
     ax.set_ylabel('$Var(θ∞)$')
     plt.scatter(x, y, s=80, facecolors='none', edgecolors='black')
     plt.grid()
-    plt.savefig('figure2/simulation3.jpg')
+    if save:
+        plt.savefig('figure2/simulation3.jpg')
+
+
 
     plt.show()
 
@@ -327,7 +241,7 @@ if __name__ == "__main__":
     print("----Start----")
 
 
-    simulation_7()
+    simulation_pic12(k =10,delta=0.1,save=False)
 
 
 

@@ -76,7 +76,7 @@ def simulation_pic3b(precision=200, ave_n=200,save = True):
 
     plt.show()
 
-def simulation_pic4a(k = 100,repeat = 25):
+def simulation_pic4a(k = 100,repeat = 25,thresold = 0.01,save = True):
 
 
     convergence = 0
@@ -92,23 +92,31 @@ def simulation_pic4a(k = 100,repeat = 25):
             m.q = np.zeros(m.number)
             for i in range(0, k):
                 m.states_update()
-                if m.convergence(thresold=0.01) and convergence == 0:
+                if m.convergence(thresold=thresold) and convergence == 0:
                     diff = abs(m.average_value() - m.initial_states.mean())
-                    print(diff)
+
                     y.append(diff)
                     x.append(e)
                     convergence = 0
                     break
 
 
-    fig, ax = plt.subplots()
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xlabel('$\overline{\epsilon}$')
-    ax.set_ylabel('$θ∞-Ave(θ0)$')
-    plt.scatter(x, y, s=80, facecolors='none', edgecolors='black')
+
+    plt.figure(figsize=(10, 3))
+    plt.ylim(1e-4,1e2)
+
+    plt.xlabel('$\overline{\epsilon}$')
+    plt.ylabel('$θ∞-Ave(θ0)$')
+    plt.xscale("log")
+    plt.yscale("log")
+
+
     plt.grid()
-    plt.savefig('figure/simulation3.jpg')
+    plt.scatter(x, y, s=80, facecolors='none', edgecolors='black')
+
+    if save:
+        plt.savefig('figure/simulation3.jpg')
+
 
     plt.show()
 
@@ -221,7 +229,7 @@ def simulation_pic5():
 
 if __name__ == "__main__":
     print("----Start----")
-    simulation_pic3a()
+    simulation_pic4a()
 
 
 

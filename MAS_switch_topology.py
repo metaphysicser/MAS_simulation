@@ -22,6 +22,15 @@ from tqdm import trange
 from sklearn.cluster import DBSCAN
 from collections import Counter
 
+
+def normalization(data):
+    _range = np.max(data) - np.min(data)
+    if _range>1:
+        return (data) / _range
+    else:
+        return data
+
+
 def connected_gragh_generated(states,r,number):
     """
 
@@ -60,15 +69,21 @@ def eta_generated(b, number):
     for i in range(0, number):
         eta[i] = np.random.laplace(0, b[i], 1)
 
+    # eta = normalization(eta)
+
     return eta
 
 
+
+
 class MAS_switch_topology(object):
-    def __init__(self, r = 2,number=50, states=(50, 100), delta=1, epsilon=0.1, p_connect=0.1, s=1, alpha=0.000001):
+    def __init__(self, r = 2,number=20, states=(50, 100), delta=1, epsilon=0.1, p_connect=0.1, s=1, alpha=0.000001):
         self.number = number
-        self.r = r
-        self.states = np.random.normal(states[0], np.sqrt(states[1]), number)
+
+        self.states = np.random.uniform(40,60,self.number)
+        # self.states = np.linspace(40, 60, self.number)
         self.initial_states = self.states
+        self.r = self.suitable_r()
         self.delta = delta
         self.epsilon = epsilon * np.ones((number, 1))
         self.A_matrix = connected_gragh_generated(self.states,self.r,self.number)
@@ -83,8 +98,17 @@ class MAS_switch_topology(object):
         self.b = np.multiply(self.c, self.q ** self.k)
         self.eta = eta_generated(self.b, self.number)
         self.d_max = np.max(self.D_matrix)
-        self.h = random.uniform(0, 1 / self.d_max)
+        self.h = 1 / self.d_max
         self.initial_avg = self.average_value()
+
+    def suitable_r(self):
+        states = np.sort(self.initial_states)
+        min = 0
+
+        for i in range(0,self.number-2):
+            if states[i+1]-states[i]>min:
+                min = states[i+1]-states[i]
+        return min+1
 
     def update_delta(self,delta):
         self.delta = delta
@@ -133,7 +157,7 @@ class MAS_switch_topology(object):
     def states_update(self):
 
         self.states = self.states - self.h * np.dot(self.L_matrix, self.states + self.eta) + np.dot(self.S_matrix,self.eta)
-        self.b = np.multiply(self.c, self.q ** self.k)
+        self.b = np.multiply(self.c, self.q ** (self.k**4))
         self.eta = eta_generated(self.b, self.number)
         self.A_matrix = connected_gragh_generated(self.states, self.r,self.number)
         self.D_matrix = D_matrix_generated(self.A_matrix, self.number)
@@ -263,9 +287,17 @@ if __name__ == "__main__":
     print("----Start----")
 
     m = MAS_switch_topology()
+    print(m.eta)
+    m.states_update()
+    print(m.eta)
+    m.states_update()
+    print(m.eta)
+    m.states_update()
+    print(m.eta)
+    m.states_update()
 
 
-    print(m.setting_time())
+    print(m.suitable_r())
 
 
 
