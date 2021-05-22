@@ -18,231 +18,376 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from MAS_switch_topology import MAS_switch_topology
 import tqdm
-from tqdm import trange
+from tqdm import trange,tqdm
 from multiprocessing import Pool
 import os, time, random
+from Multi_threading import split_data
 
 
-
-def simulation_pic12(k = 40,n = 20,r = 2,delta = 0,save = True):
-
+def simulation1(k=40, n=20, states = (0,10), r=1, delta=0, save=True):
     X = np.arange(0, k + 1)
     Y = []
-    m = MAS_switch_topology(delta=delta, number=n, r=r)
-    m.initial_states =np.array([41.8309021  ,57.64950439 ,55.37732576 ,59.20001792, 57.7233624,  40.33882689,
- 57.84884924, 48.73382393, 42.93908053 ,53.11672422, 56.06069219, 40.12895605,
- 44.62407166, 47.55277699, 50.61738483, 40.01444508, 56.25899311, 49.84214835,
- 50.72414305 ,41.86621181])
+    m = MAS_switch_topology(delta=delta, number=n, r=r,states = states)
     m.reset()
-    m.r = 4
+    m.r = r
     convergence = 0
 
     Y.append(m.states.tolist())
     for i in trange(0, k):
-        m.states_update()
+        m.states_update1()
         Y.append(m.states.tolist())
         if m.convergence():
             convergence = i
     Y = np.array(Y).T
-   # plt.title('r = 2')
+
+
     for i in range(0, n):
         plt.plot(X, Y[i])
 
-    plt.vlines(convergence, 40, 60)
+    plt.vlines(convergence, states[0], states[1])
+    if save:
+        plt.savefig('figure3/simulation0')
+    plt.show()
 
 
+def simulation_settingtime(precision=21, delta=1, repeat=100, save=True):
+    ep = np.logspace(-2, 2, precision, base=10).tolist()
+
+    y1 = []
+    y2 = []
+    y3 = []
+    y4 = []
+    m = MAS_switch_topology(delta=delta)
+
+    for e in ep:
+        m.update_epsilon(e)
+        time1 = 0
+        time2 = 0
+        time3 = 0
+        time4 = 0
+        for i in trange(repeat):
+            time1 += m.setting_time(update=1)
+            m.reset()
+            time2 += m.setting_time(update=2)
+            m.reset()
+            time3 += m.setting_time(update=3)
+            m.reset()
+            time4 += m.setting_time(update=4,value=1/2)
+            m.reset()
+        y1.append(time1 / repeat)
+        y2.append(time2 / repeat)
+        y3.append(time3 / repeat)
+        y4.append(time4 / repeat)
+
+    plt.xscale("log")
+    plt.grid()
+    plt.xlabel('$\epsilon$')
+    plt.ylabel('Setting time')
+    plt.plot(ep, y1, label='no change')
+    plt.plot(ep, y2, label='change to radius')
+    plt.plot(ep, y3, label='change to radius/2')
+    plt.plot(ep, y4, label='minius 1/2')
+    plt.legend()
 
     if save:
-        plt.savefig('figure2/simulation2b')
-
+        plt.savefig('figure3/simulation1')
     plt.show()
 
-def simulation_pic3b(precision=30, ave_n=200):
-    x1 = np.linspace(0.8, 1, precision)
-    x2 = np.linspace(1, 1.2, precision)
-
-    x = np.append(x1, x2)
-    y = np.empty((ave_n, precision * 2))
-    m = MAS_switch_topology(s=0.8)
-
-    for j in trange(0, ave_n):
-        for i in trange(0, 2 * precision):
-            m.update_s(x[i])
-            y[j][i] = m.setting_time(thresold=1)
-    y = y.mean(axis=0)
-
-    fig, ax = plt.subplots()
-    ax.set_xlim(0.8, 1.2)
-    plt.plot(x, y)
-    plt.grid()
-    ax.set_xlabel('s')
-    ax.set_ylabel('Ave. Setting Time')
-    plt.savefig('figure2/simulation6.jpg')
-    plt.show()
-
-
-def simulation_pic4a(k = 10000,repeat = 25,save = True):
-
-
-    convergence = 0
-
+def simulation_var(delta = 1, repeat = 100,save = True):
     ep = np.logspace(-2, 2, 21, base=10).tolist()
-    x = []
-    y = []
 
-    for n in ep:
-        e = n
-        t = []
-        for j in trange(repeat):
-            m = MAS_switch_topology(epsilon=e)
-            m.q = np.zeros(m.number)
+    y1 = []
+    y2 = []
+    y3 = []
+    m = MAS_switch_topology(delta=delta)
+    for e in ep:
+        m.update_epsilon(e)
+        t1 = []
+        t2 = []
+        t3 = []
 
-            for i in range(0, k):
-                m.states_update()
-                if m.convergence(thresold=1) and convergence == 0:
-                    y.append(m.variance_func())
-                    x.append(e)
-                    # t.append(m.variance_func())
-                    convergence = 0
-                    break
-        # y.append(np.array(t).mean())
-        # x.append(e)
+        for i in trange(repeat):
 
-    print(x,y)
+            m.update_mulity(update=1)
+            base = m.states
+            m.reset()
+
+            m.update_mulity(update=2)
+            var1 = m.states
+            m.reset()
+
+            m.update_mulity(update=3)
+            var2 = m.states
+            m.reset()
+
+            var1 = np.mean(((var1 - base) ** 2))
+            var2 = np.mean(((var2 - base) ** 2))
+
+            t1.append(var1)
+            t2.append(var2)
+
+        y1.append(np.mean(t1))
+        y2.append(np.mean(t2))
 
 
-    fig, ax = plt.subplots()
-    ax.set_xscale("log")
-    # ax.set_yscale("log")
-    ax.set_xlabel('$\overline{\epsilon}$')
-    ax.set_ylabel('$Var(θ∞)$')
-    plt.scatter(x, y, s=80, facecolors='none', edgecolors='black')
+
+
+    plt.xscale("log")
+    plt.yscale("log")
     plt.grid()
+    plt.xlabel('$\epsilon$')
+    plt.ylabel('Var')
+    plt.plot(ep, y1, label='resolution1')
+    plt.plot(ep, y2, label='resolution2')
+
+    plt.legend()
+
     if save:
-        plt.savefig('figure2/simulation3.jpg')
-
-
-
+        plt.savefig('figure3/simulation6')
     plt.show()
+def simulation_var_var(delta = 1, repeat = 100,save = True):
+    ep = np.logspace(-1, 1, 11, base=10).tolist()
+
+    y1 = []
+    y2 = []
+    y3 = []
+    m = MAS_switch_topology(delta=delta)
+    for e in ep:
+        m.update_epsilon(e)
+        t1 = []
+        t2 = []
+        t3 = []
+
+        for i in trange(repeat):
+
+            m.update_mulity(update=1)
+            t1.append(m.var())
+            m.reset()
+
+            m.update_mulity(update=2)
+            t2.append(m.var())
+            m.reset()
+
+            m.update_mulity(update=3)
+            t3.append(m.var())
+            m.reset()
+
+            # m.update_mulity(update=3)
+            # var3 = m.states
+            # m.reset()
+
+            # var1 = np.mean(((var1 - base) ** 2))
+            # var2 = np.mean(((var2 - base) ** 2))
+            # var3 = np.mean(((var3 - base) ** 2))
+            # t1.append(var1)
+            # t2.append(var2)
+            # t3.append(var3)
+        y1.append(np.var(t1))
+        y2.append(np.var(t2))
+        y3.append(np.var(t3))
 
 
-def simulation_pic4a2(k = 10000,repeat = 25):
 
-
-    convergence = 0
-
-    ep = np.logspace(-2, 2, 21, base=10).tolist()
-    x = []
-    y = []
-
-    for n in ep:
-        e = n
-        t = []
-        for j in trange(repeat):
-            m = MAS_switch_topology(epsilon=e)
-            m.q = np.zeros(m.number)
-
-            for i in range(0, k):
-                m.states_update()
-                if m.convergence(thresold=0.1) and convergence == 0:
-                    y.append(m.variance_func2())
-                    x.append(e)
-                    # t.append(m.variance_func())
-                    convergence = 0
-                    break
-        # y.append(np.array(t).mean())
-        # x.append(e)
-
-    print(x,y)
-
-
-    fig, ax = plt.subplots()
-    ax.set_xscale("log")
-    # ax.set_yscale("log")
-    ax.set_xlabel('$\overline{\epsilon}$')
-    ax.set_ylabel('$entroy$')
-    plt.scatter(x, y, s=80, facecolors='none', edgecolors='black')
+    plt.xscale("log")
+    plt.yscale("log")
     plt.grid()
-    plt.savefig('figure2/simulation4.jpg')
+    plt.xlabel('$\epsilon$')
+    plt.ylabel('Var_var')
+    plt.plot(ep, y1, label='no change')
+    plt.plot(ep, y2, label='resolution1')
+    plt.plot(ep, y3, label='resolution2')
+    plt.legend()
 
+    if save:
+        plt.savefig('figure3/simulation5')
     plt.show()
 
-def simulation_pic4a3(k = 100000,repeat = 20):
+def compute(repeat,result_list):
+    m = MAS_switch_topology(delta=1)
+    for i in range(repeat):
+        m.update_mulity(update=1)
+        result_list[0].append(m.var())
+        m.reset()
+
+        m.update_mulity(update=2)
+        result_list[1].append(m.var())
+        m.reset()
 
 
-    convergence = 0
-
-    ep = np.logspace(-3, 3, 31, base=10).tolist()
-    x = []
-    y = []
-
-    for n in ep:
-        e = n
-        t = []
-        for j in trange(repeat):
-            m = MAS_switch_topology(epsilon=e)
-            m.q = np.zeros(m.number)
-
-            for i in range(0, k):
-                m.states_update()
-                if m.convergence(thresold=0.001) and convergence == 0:
-                    y.append(m.variance_func2()*m.variance_func())
-                    x.append(e)
-                    # t.append(m.variance_func())
-                    convergence = 0
-                    break
-        # y.append(np.array(t).mean())
-        # x.append(e)
-
-    print(x,y)
 
 
-    fig, ax = plt.subplots()
-    ax.set_xscale("log")
-    # ax.set_yscale("log")
-    ax.set_xlabel('$\overline{\epsilon}$')
-    # ax.set_ylabel('$Var(θ∞)$')
-    plt.scatter(x, y, s=80, facecolors='none', edgecolors='black')
+def simulation_var_avg(delta = 1, repeat = 100,save = True):
+    ep = np.logspace(-1, 1, 11, base=10).tolist()
+
+
+    y1 = []
+    y2 = []
+    y3 = []
+    y4 = []
+    y5 = []
+    y6 = []
+    m = MAS_switch_topology(delta=delta)
+    for e in tqdm(ep):
+        m.update_epsilon(e)
+        t1 = []
+        t2 = []
+        t3 = []
+        t4 = []
+        t5 = []
+        t6 = []
+
+        order = np.arange(10)
+        split_data(10,5,compute,[t1,t2])
+
+
+
+        # for i in trange(repeat):
+        #
+        #     m.update_mulity(update=1)
+        #     t1.append(m.var())
+        #     m.reset()
+        #
+        #     m.update_mulity(update=2,value=1)
+        #     t2.append(m.var())
+        #     m.reset()
+        #
+        #     m.update_mulity(update=2,value=0)
+        #     t3.append(m.var())
+        #     m.reset()
+        #
+        #     m.update_mulity(update=2, value=0.5)
+        #     t4.append(m.var())
+        #     m.reset()
+        #
+        #     m.update_mulity(update=2, value=0.25)
+        #     t5.append(m.var())
+        #     m.reset()
+        #
+        #     m.update_mulity(update=2, value=0.75)
+        #     t6.append(m.var())
+        #     m.reset()
+        #
+        #
+        y1.append(np.mean(t1))
+        y2.append(np.mean(t2))
+        y3.append(np.mean(t3))
+        y4.append(np.mean(t4))
+        y5.append(np.mean(t5))
+        y6.append(np.mean(t6))
+
+
+
+    plt.xscale("log")
+    plt.yscale("log")
     plt.grid()
-    plt.savefig('figure2/simulation5.jpg')
+    plt.xlabel('$\epsilon$')
+    plt.ylabel('Var_avg')
+    print(y1)
+    print(y2)
+    print(y3)
+    print(y4)
+    print(y5)
+    print(y6)
 
+    plt.plot(ep, y1, label='no change')
+    plt.plot(ep, y2, label='arg 1')
+    # plt.plot(ep, y3, label='arg 0')
+    # plt.plot(ep, y4, label='arg 0.5')
+    # plt.plot(ep, y5, label='arg 0.25')
+    # plt.plot(ep, y6, label='arg 0.75')
+    plt.legend()
+
+    if save:
+        plt.savefig('figure3/simulation3')
     plt.show()
 
-def simulation_7(precision=30, ave_n=200):
+def simulation_cluster_num(delta = 1, repeat = 100,save = True):
+    ep = np.logspace(-2, 0, 41, base=10).tolist()
+
+    y1 = []
+    y2 = []
+    y3 = []
+    y4 = []
+    y5 = []
+    y6 = []
+    m = MAS_switch_topology(delta=delta)
+    for e in ep:
+        m.update_epsilon(e)
+        t1 = []
+        t2 = []
+        t3 = []
+        t4 = []
+        t5 = []
+        t6 = []
+
+        for i in trange(repeat):
+
+            m.update_mulity(update=1)
+            t1.append(m.cluster_num())
+            m.reset()
+
+            m.update_mulity(update=2,value=1)
+            t2.append(m.cluster_num())
+            m.reset()
+
+            m.update_mulity(update=2,value = 0)
+            t3.append(m.cluster_num())
+            m.reset()
+
+            m.update_mulity(update=2, value=0.5)
+            t4.append(m.cluster_num())
+            m.reset()
+
+            m.update_mulity(update=2, value=0.25)
+            t5.append(m.cluster_num())
+            m.reset()
+
+            m.update_mulity(update=2, value=0.75)
+            t6.append(m.cluster_num())
+            m.reset()
+
+            # m.update_mulity(update=3)
+            # var3 = m.states
+            # m.reset()
+
+            # var1 = np.mean(((var1 - base) ** 2))
+            # var2 = np.mean(((var2 - base) ** 2))
+            # var3 = np.mean(((var3 - base) ** 2))
+            # t1.append(var1)
+            # t2.append(var2)
+            # t3.append(var3)
+        y1.append(np.mean(t1))
+        y2.append(np.mean(t2))
+        y3.append(np.mean(t3))
+        y4.append(np.mean(t4))
+        y5.append(np.mean(t5))
+        y6.append(np.mean(t6))
 
 
-    ep = np.logspace(-3, 3, 31, base=10).tolist()
 
-
-    y = np.empty((ave_n, len(ep)))
-    m = MAS_switch_topology(s=1)
-
-    for j in trange(0, ave_n):
-        for i in trange(0, len(ep)):
-            m.update_epsilon(ep[i])
-            y[j][i] = m.setting_time(thresold=0.001)
-    y = y.mean(axis=0)
-
-    print(len(ep))
-    print(y.shape)
-
-    fig, ax = plt.subplots()
-    ax.set_xscale("log")
-
-    plt.plot(ep, y)
+    plt.xscale("log")
+    plt.yscale("log")
     plt.grid()
-    ax.set_xlabel('$\overline{\epsilon}$')
-    ax.set_ylabel('Ave. Setting Time')
-    plt.savefig('figure2/simulation7.jpg')
+    plt.xlabel('$\epsilon$')
+    plt.ylabel('Cluster number')
+    plt.plot(ep, y1, label='no change')
+    plt.plot(ep, y2, label='arg 1')
+    plt.plot(ep, y3, label='arg 0')
+    plt.plot(ep, y4, label='arg 0.5')
+    plt.plot(ep, y5, label='arg 0.25')
+    plt.plot(ep, y6, label='arg 0.75')
+    plt.legend()
+
+    if save:
+        plt.savefig('figure3/simulation4')
     plt.show()
-
-
 if __name__ == "__main__":
     print("----Start----")
 
-
-    simulation_pic12(k =10,delta=0.1,save=False)
-
-
+    # simulation1(k = 70,delta=0,n =30,states=(0,10))
+    # simulation_cluster_num(repeat=10)
+    simulation_var_avg(repeat=10)
+    # simulation_var()
+    # simulation_var_var()
 
     print("----End------")
